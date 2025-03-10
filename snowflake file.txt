@@ -1,0 +1,102 @@
+ CREATE OR REPLACE STORAGE INTEGRATION PBI_Integration
+  TYPE = EXTERNAL_STAGE
+  STORAGE_PROVIDER = 'S3'
+  ENABLED = TRUE
+  STORAGE_AWS_ROLE_ARN = 'arn:aws:iam::314146296750:role/powerbi.project'
+  STORAGE_ALLOWED_LOCATIONS = ('s3://powerbi.project.snowflake')
+  COMMENT = 'Optional Comment'
+
+  //description Integration Object
+  desc integration PBI_Integration;
+
+  //drop integration PBI_Integration
+
+  --------------------------------------------
+//drop database PowerBI
+
+CREATE database PowerBI;
+
+create schema PBI_Data;
+
+create table PBI_Dataset (
+Year int,	Location string,	Area	int,
+Rainfall	float, Temperature	float, Soil_type string,
+Irrigation	string, yeilds	int,Humidity	float,
+Crops	string,price	int,Season string
+);
+
+select * from PBI_Dataset;
+
+//drop database test;
+
+create stage PowerBI.PBI_Data.pbi_stage
+url = 's3://powerbi.project.snowflake'
+storage_integration = PBI_Integration
+
+//desc stage s1
+
+//drop stage s1;
+
+
+copy into PBI_Dataset 
+from @pbi_stage
+file_format = (type=csv field_delimiter=',' skip_header=1 )
+on_error = 'continue'
+
+list @pbi_stage
+
+
+//Data Transformations
+select * from PBI_Dataset
+
+//Update the rainfall column by 10% (increase)
+update PBI_Dataset 
+set rainfall=1.10*rainfall
+
+//Update the area column by 10%(reduce)
+update PBI_Dataset
+set area=0.9*area
+
+select * from PBI_Dataset
+
+//Year 2004 & 2009 - Y1
+//Year 2010 & 2015 - Y2
+//Year 2016 & 2019 - Y3
+
+ALTER TABLE PBI_DATASET
+add Year_Group String;
+
+Update PBI_DATASET 
+set Year_Group ='Y1'
+where YEAR>=2004 and YEAR<=2009
+
+Update PBI_DATASET 
+set Year_Group ='Y2'
+where YEAR>=2010 and YEAR<=2015
+
+Update PBI_DATASET 
+set Year_Group ='Y3'
+where YEAR>=2016 and YEAR<=2019
+
+
+select * from PBI_DATASET
+
+//New Column Rainfall_groups
+//Rainfall : Min: 255, Max: 4105
+
+alter table PBI_DATASET
+add Rainfall_group string
+
+update PBI_DATASET
+set Rainfall_group='Low'
+where RAINFALL>=255 and RAINFALL<1500
+
+update PBI_DATASET
+set Rainfall_group='Medium'
+where RAINFALL>=1500 and RAINFALL<3100
+
+update PBI_DATASET
+set Rainfall_group='High'
+where RAINFALL>=3100
+
+select * from PBI_DATASET
